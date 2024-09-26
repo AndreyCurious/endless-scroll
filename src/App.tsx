@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react';
+import React, { useCallback, useEffect, useState } from 'react';
 import './App.css';
 import { ICard } from './types';
 import Card from './components/card';
@@ -6,7 +6,6 @@ import Card from './components/card';
 function App() {
   const [photos, setPhotos] = useState<ICard[]>([]);
   const [offset, setOffset] = useState<number>(0);
-  const [fetching, setFetching] = useState<boolean>(true);
   const [totalCount, setTotalCount] = useState<number>(0);
 
   const loadContetnt = (start: number = 0, limit: number = 20) => {
@@ -20,33 +19,38 @@ function App() {
       .then((res) => {
         setPhotos([...photos, ...res]);
         setOffset(offset + 20);
-      })
-      .finally(() => {
-        setFetching(false);
       });
   };
-
-  useEffect(() => {
-    fetching && totalCount >= photos.length && loadContetnt(offset);
-  }, [fetching]);
-
-  useEffect(() => {
-    document.addEventListener('scroll', scrollHandler);
-    return function () {
-      document.removeEventListener('scroll', scrollHandler);
-    };
-  }, []);
 
   const scrollHandler = () => {
     if (
       document.documentElement.scrollHeight -
         document.documentElement.scrollTop -
         window.innerHeight <
-      100
+        100 &&
+      totalCount > photos.length
     ) {
-      setFetching(true);
+      loadContetnt(offset);
     }
   };
+
+  const cacheScrollHandler = useCallback(scrollHandler, [
+    offset,
+    totalCount,
+    photos,
+  ]);
+
+  useEffect(() => {
+    loadContetnt();
+  }, []);
+
+  useEffect(() => {
+    document.addEventListener('scroll', cacheScrollHandler);
+    return function () {
+      document.removeEventListener('scroll', cacheScrollHandler);
+    };
+  }, [cacheScrollHandler]);
+
   return (
     <div className="App">
       {photos &&
