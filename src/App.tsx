@@ -1,4 +1,4 @@
-import React, { useCallback, useEffect, useState } from 'react';
+import React, { useEffect, useRef, useState } from 'react';
 import './App.css';
 import { ICard } from './types';
 import Card from './components/card';
@@ -7,8 +7,10 @@ function App() {
   const [photos, setPhotos] = useState<ICard[]>([]);
   const [offset, setOffset] = useState<number>(0);
   const [totalCount, setTotalCount] = useState<number>(0);
+  const appRef = useRef<HTMLDivElement | null>(null);
+  const endlessscrollRef = useRef<HTMLDivElement | null>(null);
 
-  const loadContetnt = (start: number = 0, limit: number = 20) => {
+  const loadContent = (start: number = 0, limit: number = 2) => {
     fetch(
       `https://jsonplaceholder.typicode.com/photos?_limit=${limit}&_start=${start}`
     )
@@ -18,41 +20,27 @@ function App() {
       })
       .then((res) => {
         setPhotos([...photos, ...res]);
-        setOffset(offset + 20);
+        setOffset(offset + 2);
       });
   };
 
-  const scrollHandler = () => {
-    if (
-      document.documentElement.scrollHeight -
-        document.documentElement.scrollTop -
-        window.innerHeight <
-        100 &&
-      totalCount > photos.length
-    ) {
-      loadContetnt(offset);
-    }
-  };
-
-  const cacheScrollHandler = useCallback(scrollHandler, [
-    offset,
-    totalCount,
-    photos,
-  ]);
-
   useEffect(() => {
-    loadContetnt();
-  }, []);
-
-  useEffect(() => {
-    document.addEventListener('scroll', cacheScrollHandler);
-    return function () {
-      document.removeEventListener('scroll', cacheScrollHandler);
+    const observer = new IntersectionObserver((entries) => {
+      if (entries[0].isIntersecting && offset <= totalCount) {
+        loadContent(offset);
+      }
+    });
+    observer.observe(endlessscrollRef.current as Element);
+    return () => {
+      observer.disconnect();
     };
-  }, [cacheScrollHandler]);
+  });
 
   return (
-    <div className="App">
+    <div
+      ref={appRef}
+      className="App"
+    >
       {photos &&
         photos.map((photo) => (
           <Card
@@ -60,6 +48,10 @@ function App() {
             card={photo}
           />
         ))}
+      <div
+        ref={endlessscrollRef}
+        className="endlessscroll"
+      ></div>
     </div>
   );
 }

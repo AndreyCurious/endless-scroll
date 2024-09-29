@@ -1,8 +1,7 @@
 .App {
   margin: 100px 0;
+  display: flex;
+  flex-wrap: wrap;
   justify-content: center;
-  display: grid;
-  grid-template-columns: repeat(5, 15%);
-  gap: 20px
 }
 
